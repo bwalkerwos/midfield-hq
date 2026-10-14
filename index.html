@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101713">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Midfield HQ">
+<title>Midfield HQ</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#101713;--card:#1b251f;--line:#354338;
+  --gold:#e4c47b;--text:#f1f3ec;--muted:#b4c1b5
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:radial-gradient(ellipse at top,#293c2c,var(--bg) 65%);
+  color:var(--text);font:16px system-ui,-apple-system,sans-serif;
+  min-height:100vh
+}
+main{max-width:660px;margin:auto;padding:26px 18px 60px}
+h1{font-size:34px;margin:4px 0 8px;letter-spacing:-1px}
+h2{font-size:22px;margin:0 0 12px}
+h3{font-size:18px;margin:0 0 12px}
+p{line-height:1.55}
+.kicker{color:var(--gold);font-size:12px;letter-spacing:3px;font-weight:700}
+.muted,small{color:var(--muted)}
+.card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:20px;padding:20px;margin:16px 0
+}
+.hero{border-color:#776440}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+button,select,input,textarea{font:inherit}
+button,select,input[type=file]{
+  min-height:46px;border-radius:12px;padding:10px 13px;
+  border:1px solid var(--line);background:#26342a;color:var(--text)
+}
+button{cursor:pointer}
+button.active{background:var(--gold);color:#172016;border-color:var(--gold)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{
+  outline:3px solid var(--gold);outline-offset:3px
+}
+.week-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.week-grid button{padding:12px 4px}
+.days{display:flex;gap:7px;overflow:auto;padding:4px 0 10px}
+.days button{flex:0 0 auto}
+progress{width:100%;height:12px;accent-color:var(--gold)}
+.task{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 0;border-top:1px solid var(--line);line-height:1.45
+}
+.task input{
+  width:24px;height:24px;flex-shrink:0;
+  margin:0;accent-color:var(--gold)
+}
+.task:has(input:checked) span{color:var(--muted);text-decoration:line-through}
+textarea{
+  width:100%;min-height:130px;resize:vertical;padding:14px;
+  border:1px solid var(--line);border-radius:12px;
+  background:#101a14;color:var(--text);line-height:1.5
+}
+label.field{display:block;margin:16px 0 8px;color:var(--muted)}
+select{width:100%}
+.timer{font-size:48px;font-variant-numeric:tabular-nums;margin:8px 0}
+summary{cursor:pointer;min-height:44px;padding:10px 0;font-weight:700}
+.notice{font-size:14px;color:var(--muted)}
+#saveStatus{font-size:13px;color:var(--gold);min-height:20px}
+footer{font-size:13px;line-height:1.6;color:var(--muted)}
+@media(prefers-reduced-motion:no-preference){
+  button{transition:background .15s,transform .15s}
+  button:active{transform:scale(.97)}
+}
+@media print{
+  body{background:white;color:black}
+  .card{background:white;border:1px solid #aaa}
+  button,#backup,.timer-tools{display:none}
+  textarea{background:white;color:black}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="kicker">THE OFFSEASON CAMPAIGN</div>
+  <h1>Midfield HQ</h1>
+  <p class="muted">Train with purpose. Recover with intent.</p>
+</header>
+
+<section class="card hero">
+  <div class="row between">
+    <h2 id="weekTitle"></h2>
+    <span id="phaseBadge" class="kicker"></span>
+  </div>
+  <p id="phaseText"></p>
+  <progress id="weekProgress" max="100" value="0"
+    aria-label="Selected week completion"></progress>
+  <p id="weekCount" class="notice"></p>
+  <div class="week-grid" id="weeks" aria-label="Training week"></div>
+  <p class="notice">Choose your week manually. Nothing advances or adds workload automatically.</p>
+</section>
+
+<div class="days" id="days" aria-label="Training day"></div>
+<h2 id="dayTitle"></h2>
+<div id="sessions"></div>
+
+<section class="card">
+  <h3>Training log</h3>
+  <p class="notice">Saved separately for each day of each week.</p>
+  <label class="field" for="energy">Energy before training</label>
+  <select id="energy">
+    <option value="">Choose…</option>
+    <option>Low</option>
+    <option>Okay</option>
+    <option>Good</option>
+    <option>Excellent</option>
+  </select>
+  <label class="field" for="notes">Sets, weights, reps, and notes</label>
+  <textarea id="notes" placeholder="Example format:
+Trap-bar deadlift — weight/unit × reps × sets
+Sleep:
+Session notes:
+Next time:"></textarea>
+  <div id="saveStatus" role="status"></div>
+</section>
+
+<section class="card">
+  <h3>Rest timer</h3>
+  <p class="notice">Convenience presets—not prescribed rest periods.
+  Keep the app open; this version has no background alerts.</p>
+  <div id="clock" class="timer" role="timer">00:00</div>
+  <div class="row timer-tools">
+    <button type="button" data-seconds="30">30 sec</button>
+    <button type="button" data-seconds="60">60 sec</button>
+    <button type="button" data-seconds="120">2 min</button>
+    <button type="button" id="stopTimer">Reset</button>
+  </div>
+</section>
+
+<section class="card">
+  <h3>Campaign progress</h3>
+  <progress id="totalProgress" max="100" value="0"
+    aria-label="Eight-week completion"></progress>
+  <p id="totalCount"></p>
+  <p class="notice">This tracks checked plan items, not fitness gains.
+  Recovery and rest count. No bonus for extra workouts.</p>
+</section>
+
+<details class="card">
+  <summary>Plan reference & training rules</summary>
+  <p><strong>Monday:</strong> Acceleration and jumps / Lower A.</p>
+  <p><strong>Tuesday:</strong> Easy aerobic.</p>
+  <p><strong>Wednesday:</strong> Conditioning / Upper body and trunk.</p>
+  <p><strong>Thursday:</strong> Recovery.</p>
+  <p><strong>Friday:</strong> Speed and change of direction / Lower B.</p>
+  <p><strong>Saturday:</strong> Easy aerobic.</p>
+  <p><strong>Sunday:</strong> Rest.</p>
+  <p>From your original plan: main lifts finish with
+  2 repetitions in reserve; accessories with 2–3.</p>
+  <p class="notice">This dashboard contains the available plan summary.
+  Check your original plan for exact sets, repetitions, rest periods,
+  warm-ups, and nutrition details. Weekly phase labels are reminders,
+  not automatic changes to exercise prescriptions.</p>
+</details>
+
+<section class="card" id="backup">
+  <h3>Save your progress</h3>
+  <p class="notice">Logs stay in this browser/app storage.
+  They do not sync to another device. Export a backup regularly.</p>
+  <div class="row">
+    <button type="button" id="export">Download backup</button>
+    <button type="button" id="print">Print / save PDF</button>
+  </div>
+  <p class="notice">Print/PDF covers the currently selected day.</p>
+  <label class="field" for="import">Restore a previously exported backup</label>
+  <input id="import" type="file" accept=".json,application/json">
+  <p class="notice">Restoring replaces this device's existing logs.
+  Do not upload backup files to your public repository.</p>
+</section>
+
+<footer>
+  Midfield HQ · Version 1<br>
+  No analytics, accounts, or external scripts in this app.
+  Internet access is needed to load it.
+  Avoid private browsing and keep a backup.
+</footer>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const KEY = "midfield-hq-v1";
+const dayNames = [
+  "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"
+];
+const phases = [
+  ["RAMP-UP","Reduced-volume introduction. Follow Week 1 of your original plan."],
+  ["RAMP-UP","Continue the reduced-volume build. Follow Week 2 of your original plan."],
+  ["BUILD","Full planned volume. Follow Week 3 of your original plan."],
+  ["DELOAD","Lighter week. Follow the deload in your original plan."],
+  ["INTENSIFY","Increased intensity. Follow Week 5 of your original plan."],
+  ["INTENSIFY","Continue the planned intensity progression. Follow Week 6."],
+  ["PEAK","Peak week. Repeated 20 m sprints were optional in the original plan—not an automatic addition."],
+  ["TAPER","Reduce workload as prescribed in your original plan."]
+];
+const plan = [
+  [
+    ["AM · Acceleration + jumps",[
+      "10 m accelerations","20 m accelerations","Jumps"
+    ]],
+    ["PM · Lower-body Strength A",[
+      "Trap-bar deadlift","Split squat","Copenhagen hold"
+    ]]
+  ],
+  [
+    ["Easy aerobic",["30–40 minutes easy aerobic"]]
+  ],
+  [
+    ["AM · Conditioning",["Conditioning intervals — 2–4 minute efforts"]],
+    ["PM · Upper body + trunk",[
+      "Upper-body strength — follow original exercise list",
+      "Trunk training — follow original exercise list"
+    ]]
+  ],
+  [
+    ["Recovery",["Follow your planned recovery day"]]
+  ],
+  [
+    ["AM · Speed + change of direction",[
+      "Speed work","Braking practice","45-degree cuts"
+    ]],
+    ["PM · Lower-body Strength B",[
+      "Squat","Romanian deadlift","Step-up"
+    ]]
+  ],
+  [
+    ["Easy aerobic",["Easy aerobic session — follow original duration"]]
+  ],
+  [
+    ["Rest",["Rest day — no extra workout required"]]
+  ]
+];
+
+let state = {version:1,week:0,day:(new Date().getDay()+6)%7,logs:{}};
+let storageWarning = "";
+
+function validState(x){
+  if(!x || x.version!==1 || !Number.isInteger(x.week) ||
+     x.week<0 || x.week>7 || !Number.isInteger(x.day) ||
+     x.day<0 || x.day>6 || !x.logs ||
+     typeof x.logs!=="object" || Array.isArray(x.logs)) return false;
+  return Object.entries(x.logs).every(([k,v]) =>
+    /^[0-7]-[0-6]$/.test(k) && v && typeof v==="object" &&
+    typeof v.notes==="string" && typeof v.energy==="string" &&
+    v.checks && typeof v.checks==="object" && !Array.isArray(v.checks) &&
+    Object.entries(v.checks).every(([a,b]) =>
+      /^\d+-\d+$/.test(a) && typeof b==="boolean"
+    )
+  );
+}
+try{
+  const raw=localStorage.getItem(KEY);
+  if(raw){
+    const parsed=JSON.parse(raw);
+    if(validState(parsed)) state=parsed;
+    else storageWarning="Stored data could not be loaded. Restore a backup.";
+  }
+}catch(e){
+  storageWarning="Storage unavailable. Your changes may not survive closing the app.";
+}
+function entry(w=state.week,d=state.day){
+  const key=w+"-"+d;
+  if(!state.logs[key]) state.logs[key]={checks:{},notes:"",energy:""};
+  return state.logs[key];
+}
+function save(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(state));
+    $("saveStatus").textContent="Saved on this device";
+  }catch(e){
+    $("saveStatus").textContent="Could not save. Download a backup before closing.";
+  }
+}
+function makeButton(text,selected,callback){
+  const b=document.createElement("button");
+  b.type="button";b.textContent=text;
+  b.className=selected?"active":"";
+  b.setAttribute("aria-pressed",String(selected));
+  b.onclick=callback;return b;
+}
+function counts(w){
+  let done=0,total=0;
+  plan.forEach((sessions,d)=>{
+    const checks=state.logs[w+"-"+d]?.checks||{};
+    sessions.forEach((session,s)=>session[1].forEach((_,i)=>{
+      total++;if(checks[s+"-"+i]===true) done++;
+    }));
+  });
+  return {done,total};
+}
+function updateProgress(){
+  const c=counts(state.week);
+  $("weekProgress").value=c.done/c.total*100;
+  $("weekCount").textContent=c.done+" of "+c.total+" plan items checked this week";
+  let done=0,total=0;
+  for(let w=0;w<8;w++){
+    const n=counts(w);done+=n.done;total+=n.total;
+  }
+  $("totalProgress").value=done/total*100;
+  $("totalCount").textContent=done+" of "+total+" items across eight weeks";
+}
+function render(){
+  const w=state.week,d=state.day;
+  $("weekTitle").textContent="Week "+(w+1)+" / 8";
+  $("phaseBadge").textContent=phases[w][0];
+  $("phaseText").textContent=phases[w][1];
+  $("weeks").replaceChildren();
+  for(let i=0;i<8;i++){
+    $("weeks").append(makeButton("W"+(i+1),i===w,()=>{
+      state.week=i;save();render();
+    }));
+  }
+  $("days").replaceChildren();
+  dayNames.forEach((name,i)=>{
+    $("days").append(makeButton(name.slice(0,3),i===d,()=>{
+      state.day=i;save();render();
+    }));
+  });
+  $("dayTitle").textContent=dayNames[d];
+  $("sessions").replaceChildren();
+  const log=entry();
+  plan[d].forEach(([title,tasks],s)=>{
+    const card=document.createElement("section");
+    card.className="card";
+    const h=document.createElement("h3");h.textContent=title;card.append(h);
+    tasks.forEach((text,i)=>{
+      const label=document.createElement("label");label.className="task";
+      const checkbox=document.createElement("input");checkbox.type="checkbox";
+      const key=s+"-"+i;checkbox.checked=log.checks[key]===true;
+      checkbox.onchange=()=>{
+        log.checks[key]=checkbox.checked;save();updateProgress();
+      };
+      const span=document.createElement("span");span.textContent=text;
+      label.append(checkbox,span);card.append(label);
+    });
+    $("sessions").append(card);
+  });
+  $("notes").value=log.notes;
+  $("energy").value=log.energy;
+  updateProgress();
+}
+$("notes").addEventListener("input",()=>{
+  entry().notes=$("notes").value;save();
+});
+$("energy").addEventListener("change",()=>{
+  entry().energy=$("energy").value;save();
+});
+
+let timerEnd=0,timerInterval;
+function tick(){
+  const seconds=Math.max(0,Math.ceil((timerEnd-Date.now())/1000));
+  $("clock").textContent=
+    String(Math.floor(seconds/60)).padStart(2,"0")+":"+
+    String(seconds%60).padStart(2,"0");
+  if(!seconds){
+    clearInterval(timerInterval);
+    $("clock").textContent="Finished";
+  }
+}
+document.querySelectorAll("[data-seconds]").forEach(b=>{
+  b.onclick=()=>{
+    clearInterval(timerInterval);
+    timerEnd=Date.now()+Number(b.dataset.seconds)*1000;
+    tick();timerInterval=setInterval(tick,250);
+  };
+});
+$("stopTimer").onclick=()=>{
+  clearInterval(timerInterval);$("clock").textContent="00:00";
+};
+$("export").onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="midfield-hq-backup-"+new Date().toISOString().slice(0,10)+".json";
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+};
+$("import").onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{
+    if(file.size>2000000) throw new Error("File too large.");
+    const imported=JSON.parse(await file.text());
+    if(!validState(imported)) throw new Error("Not a valid Midfield HQ backup.");
+    if(confirm("Replace this device's logs with this backup?")){
+      state=imported;save();render();
+    }
+  }catch(err){alert("Restore failed: "+err.message);}
+  e.target.value="";
+};
+$("print").onclick=()=>window.print();
+render();
+if(storageWarning) $("saveStatus").textContent=storageWarning;
+</script>
+</body>
+</html>
